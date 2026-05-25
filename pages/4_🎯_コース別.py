@@ -123,6 +123,10 @@ df_course = conn.execute(
     f"""
     SELECT c.duration_min || '分 ' || c.course_type AS コース,
            SUM(f.case_count) AS 件数, SUM(f.sales) AS 売上,
+           SUM(CASE WHEN f.new_or_repeat='new' THEN f.sales ELSE 0 END) AS 新規売上,
+           SUM(CASE WHEN f.new_or_repeat='repeat' THEN f.sales ELSE 0 END) AS リピート売上,
+           SUM(CASE WHEN f.new_or_repeat='new' THEN f.case_count ELSE 0 END) AS 新規件数,
+           SUM(CASE WHEN f.new_or_repeat='repeat' THEN f.case_count ELSE 0 END) AS リピート件数,
            CASE WHEN SUM(f.case_count)>0 THEN SUM(f.sales)/SUM(f.case_count) ELSE 0 END AS 客単価
     FROM fact_course_daily f JOIN dim_course c USING (course_id)
     WHERE strftime(f.date, '%Y-%m')=?{store_filter}
@@ -148,7 +152,7 @@ if df_course.empty:
 else:
     col1, col2 = st.columns([5, 4])
     with col1:
-        with chart_card(kicker="売上順位", title=yen(df_course["売上"].sum()), sub="コース別合計", granularity="月次"):
+        with chart_card(kicker="売上順位", title=yen(df_course["売上"].sum()), sub="コース別合計（新規 / リピート 内訳付き）", granularity="月次"):
             items = []
             for _, row in df_course.iterrows():
                 prev = prev_map_course.get(row["コース"], 0) or 0
@@ -156,7 +160,11 @@ else:
                 items.append({
                     "label": row["コース"],
                     "value": yen(row["売上"]),
-                    "sub": f"{int(row['件数']):,} 件 / 客単価 {yen(row['客単価'])}",
+                    "sub": (
+                        f"{int(row['件数']):,} 件 / 客単価 {yen(row['客単価'])}　"
+                        f"｜　新規 {yen(row['新規売上'])}（{int(row['新規件数'])}件）　"
+                        f"／　リピート {yen(row['リピート売上'])}（{int(row['リピート件数'])}件）"
+                    ),
                     "delta": delta,
                 })
             rank_list(items)
