@@ -72,6 +72,22 @@ with st.expander("全テーブルの行数を見る", expanded=False):
     ).sort_values("テーブル").reset_index(drop=True)
     st.dataframe(df_summary, use_container_width=True, hide_index=True)
 
+# 派生データ手動再計算（古いデータの補完用）
+c_rec1, c_rec2 = st.columns([3, 1])
+with c_rec1:
+    st.markdown(
+        '<div style="color:#6B7280;font-size:12px;line-height:1.6;padding-top:8px;">'
+        "案件数・客単価・リピート率が0表示の場合は、こちらをクリックして派生データを再計算してください。"
+        "</div>",
+        unsafe_allow_html=True,
+    )
+with c_rec2:
+    if st.button("派生データを再計算", use_container_width=True):
+        with st.spinner("再計算中..."):
+            backfill_derived_fields(conn)
+        st.success("再計算しました。各画面を再読み込みしてください。")
+        st.rerun()
+
 
 # ---------- アップロード ----------
 section_title("Excelをアップロードして取り込む", sub="ファイル名で自動判定／複数まとめてアップロードOK")
