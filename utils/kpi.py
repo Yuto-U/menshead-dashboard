@@ -44,14 +44,10 @@ def _delta(current: float | None, previous: float | None) -> float | None:
     return (current - previous) / previous
 
 
-def compute_store_sales(conn: duckdb.DuckDBPyConnection, year_month: str) -> dict:
-    """全社+店舗別の当月売上と前月比をまとめて返す。
-
-    返り値: {
-        "total": {"current": ..., "previous": ..., "delta": ...},
-        1: ..., 2: ..., 3: ...  # store_id
-    }
-    """
+@st.cache_data(ttl=300, show_spinner=False)
+def _compute_store_sales_cached(year_month: str) -> dict:
+    from db.warehouse import get_conn
+    conn = get_conn()
     sql = (
         "SELECT store_id, COALESCE(SUM(sales), 0) AS s "
         "FROM fact_daily_sales "
@@ -59,15 +55,12 @@ def compute_store_sales(conn: duckdb.DuckDBPyConnection, year_month: str) -> dic
         "GROUP BY store_id"
     )
     cur = {row[0]: row[1] for row in conn.execute(sql, [year_month]).fetchall()}
-    prev_ym = _prev_year_month(year_month)
-    prev = {row[0]: row[1] for row in conn.execute(sql, [prev_ym]).fetchall()}
-
+    prev = {row[0]: row[1] for row in conn.execute(sql, [_prev_year_month(year_month)]).fetchall()}
     result: dict = {}
     for sid in (1, 2, 3):
         c = cur.get(sid, 0) or 0
         p = prev.get(sid, 0) or 0
         result[sid] = {"current": c, "previous": p, "delta": _delta(c, p)}
-
     total_c = sum(cur.values())
     total_p = sum(prev.values())
     result["total"] = {
@@ -78,8 +71,24 @@ def compute_store_sales(conn: duckdb.DuckDBPyConnection, year_month: str) -> dic
     return result
 
 
-def compute_home_kpi(conn: duckdb.DuckDBPyConnection, year_month: str) -> dict:
-    """ホーム画面の主要KPI（当月実績 + 前月比）。"""
+def compute_store_sales(conn: duckdb.DuckDBPyConnection, year_month: str) -> dict:
+    """全社+店舗別の当月売上と前月比をまとめて返す。
+
+    返り値: {
+        "total": {"current": ..., "previous": ..., "delta": ...},
+        1: ..., 2: ..., 3: ...  # store_id
+    }
+    """
+    try:
+        return _compute_store_sales_cached(year_month)
+    except Exception:
+        return _compute_store_sales_cached.__wrapped__(year_month)
+
+
+@st.cache_data(ttl=300, show_spinner=False)
+def _compute_home_kpi_cached(year_month: str) -> dict:
+    from db.warehouse import get_conn
+    conn = get_conn()
     sql = """
         SELECT
             COALESCE(SUM(sales), 0) AS sales_actual,
@@ -102,6 +111,14 @@ def compute_home_kpi(conn: duckdb.DuckDBPyConnection, year_month: str) -> dict:
         "delta_unit": _delta(cur[2], prev[2]),
         "delta_repeat": _delta(cur[3], prev[3]),
     }
+
+
+def compute_home_kpi(conn: duckdb.DuckDBPyConnection, year_month: str) -> dict:
+    """ホーム画面の主要KPI（当月実績 + 前月比）。5分キャッシュ。"""
+    try:
+        return _compute_home_kpi_cached(year_month)
+    except Exception:
+        return _compute_home_kpi_cached.__wrapped__(year_month)
 
 
 def projection_for_current_month(
