@@ -40,28 +40,32 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-render_header("管理", "Excelをアップロードしてダッシュボードへ反映", kicker="管理")
+render_header(
+    "管理",
+    "毎月の日報・勤怠ファイルをアップロードしてダッシュボードへ反映",
+    kicker="管理",
+)
 
 conn = get_conn()
 init_schema(conn)
 
 
 # ---------- DBステータスカード ----------
-section_title("📊 データ取込状況")
+section_title("データ取込状況", sub="取り込み済みデータの行数")
 summary = table_summary(conn)
-fact_tables = {k: v for k, v in summary.items() if k.startswith("fact_")}
-dim_tables = {k: v for k, v in summary.items() if k.startswith("dim_")}
 
 cols = st.columns(4)
-key_tables = ["fact_daily_sales", "fact_course_daily", "fact_cast_monthly", "fact_attendance"]
-labels = ["日次×店舗売上", "コース別×日", "キャスト×月", "勤怠"]
-for col, table, label in zip(cols, key_tables, labels):
+key_tables = [
+    ("fact_daily_sales", "日次売上", "店舗×日別の売上集計"),
+    ("fact_course_daily", "コース別", "日×コース×新規/リピート"),
+    ("fact_cast_monthly", "キャスト×月", "月次のキャスト別集計"),
+    ("fact_attendance", "勤怠", "キャスト×日の出勤記録"),
+]
+for col, (table, label, sub) in zip(cols, key_tables):
     with col:
-        kpi_card(label, f"{summary.get(table, 0):,} 行", sub=table)
+        kpi_card(label, f"{summary.get(table, 0):,} 行", sub=sub)
 
-
-# 詳細テーブル
-with st.expander("📋 全テーブルの行数", expanded=False):
+with st.expander("全テーブルの行数を見る", expanded=False):
     df_summary = pd.DataFrame(
         [(k, v) for k, v in summary.items() if not k.startswith("information_")],
         columns=["テーブル", "行数"],
@@ -70,23 +74,49 @@ with st.expander("📋 全テーブルの行数", expanded=False):
 
 
 # ---------- アップロード ----------
-st.markdown('<div style="height:14px;"></div>', unsafe_allow_html=True)
-section_title("📤 Excelをアップロードして取り込む")
+section_title("Excelをアップロードして取り込む", sub="ファイル名で自動判定／複数まとめてアップロードOK")
 st.markdown(
     """
-    <div style="color:#94A3B8;font-size:13px;line-height:1.7;">
-    対応ファイル（ファイル名で自動判定 / 複数同時OK）：<br>
-    ✅ <b style="color:#E8C77A;">ヘッド店舗KPI.xlsx</b> — 日次×店舗の売上、コース別件数（実装済）<br>
-    🔜 aoスパニスト評価シート.xlsx — キャスト×月の指名率・売上（Phase2）<br>
-    🔜 ao合計日報{YYMM}.xlsx — 案件単位の生データ（Phase2）<br>
-    🔜 ヘッドホワイトボード{YYMM}.xlsx — 勤怠・出禁リスト（Phase2）<br>
-    🔜 ヘッドスパニスト一覧管理表.xlsx — キャストマスタ・採用ファネル（Phase2）<br>
-    🔜 ヘッド研修日程表.xlsx — 研修進捗（Phase2）
+    <div style="background:#FFFFFF;border:1px solid #E5E7EB;border-radius:12px;padding:18px 22px;margin-bottom:14px;">
+      <div style="display:grid;grid-template-columns:64px 1fr 80px;gap:12px 16px;align-items:center;font-size:13px;">
+
+        <div style="font-weight:700;color:#7A5A36;font-family:Inter,sans-serif;font-size:11px;letter-spacing:0.16em;">毎月</div>
+        <div>
+          <div style="font-weight:700;color:#111827;">ao合計日報YYMM.xlsx</div>
+          <div style="color:#6B7280;font-size:12px;margin-top:2px;">CSスタッフが毎日入力する日報。売上・コース別・キャスト×月集計のメインデータ</div>
+        </div>
+        <div style="color:#9CA3AF;font-size:11px;text-align:right;">月1回更新</div>
+
+        <div style="font-weight:700;color:#7A5A36;font-family:Inter,sans-serif;font-size:11px;letter-spacing:0.16em;">毎月</div>
+        <div>
+          <div style="font-weight:700;color:#111827;">ヘッドホワイトボードYYMM.xlsx</div>
+          <div style="color:#6B7280;font-size:12px;margin-top:2px;">キャストの勤怠ステータス（出勤・欠勤・早退など）の元データ</div>
+        </div>
+        <div style="color:#9CA3AF;font-size:11px;text-align:right;">月1回更新</div>
+
+        <div style="font-weight:700;color:#7A5A36;font-family:Inter,sans-serif;font-size:11px;letter-spacing:0.16em;">不定期</div>
+        <div>
+          <div style="font-weight:700;color:#111827;">ヘッドスパニスト一覧管理表.xlsx</div>
+          <div style="color:#6B7280;font-size:12px;margin-top:2px;">キャストマスタ（源氏名・派遣名・優先度・固定エリア・在籍ステータス）</div>
+        </div>
+        <div style="color:#9CA3AF;font-size:11px;text-align:right;">変更時のみ</div>
+
+        <div style="font-weight:700;color:#7A5A36;font-family:Inter,sans-serif;font-size:11px;letter-spacing:0.16em;">不定期</div>
+        <div>
+          <div style="font-weight:700;color:#111827;">ヘッド研修日程表.xlsx</div>
+          <div style="color:#6B7280;font-size:12px;margin-top:2px;">研修進捗（OP・フット・オイル等の完了状況）</div>
+        </div>
+        <div style="color:#9CA3AF;font-size:11px;text-align:right;">変更時のみ</div>
+
+      </div>
+    </div>
+
+    <div style="color:#6B7280;font-size:12px;margin-bottom:8px;line-height:1.6;">
+    💡 ファイル名は変更しないでください（自動判定に使います）。同名ファイルを再アップすると上書き更新されます。
     </div>
     """,
     unsafe_allow_html=True,
 )
-st.markdown('<div style="height:12px;"></div>', unsafe_allow_html=True)
 
 uploaded = st.file_uploader(
     " ", type=["xlsx"], accept_multiple_files=True, label_visibility="collapsed"
@@ -118,14 +148,11 @@ if uploaded:
 
 
 # ---------- リセット ----------
-st.markdown('<div style="height:24px;"></div>', unsafe_allow_html=True)
-section_title("🗑 DBリセット（危険）")
-st.warning("全データを削除して空の状態に戻します。再度Excelをアップロードする必要があります。")
+section_title("DBリセット", sub="取り込み済みデータを全削除")
+st.warning("⚠️ 取り込み済みの全データを削除します。再度Excelをアップロードする必要があります。")
 confirm = st.checkbox("削除に同意する")
-if st.button("🗑 全データを削除", disabled=not confirm):
+if st.button("全データを削除", disabled=not confirm):
     conn.close()
     reset_db()
     st.success("DBをリセットしました。ページを再読み込みします。")
     st.rerun()
-
-st.markdown(f'<div style="color:#64748B;font-size:11px;margin-top:24px;">DB: <code>{DEFAULT_DB_PATH}</code></div>', unsafe_allow_html=True)
