@@ -75,48 +75,18 @@ with st.expander("全テーブルの行数を見る", expanded=False):
 
 # ---------- アップロード ----------
 section_title("Excelをアップロードして取り込む", sub="ファイル名で自動判定／複数まとめてアップロードOK")
-st.markdown(
-    """
-    <div style="background:#FFFFFF;border:1px solid #E5E7EB;border-radius:12px;padding:18px 22px;margin-bottom:14px;">
-      <div style="display:grid;grid-template-columns:64px 1fr 80px;gap:12px 16px;align-items:center;font-size:13px;">
 
-        <div style="font-weight:700;color:#7A5A36;font-family:Inter,sans-serif;font-size:11px;letter-spacing:0.16em;">毎月</div>
-        <div>
-          <div style="font-weight:700;color:#111827;">ao合計日報YYMM.xlsx</div>
-          <div style="color:#6B7280;font-size:12px;margin-top:2px;">CSスタッフが毎日入力する日報。売上・コース別・キャスト×月集計のメインデータ</div>
-        </div>
-        <div style="color:#9CA3AF;font-size:11px;text-align:right;">月1回更新</div>
-
-        <div style="font-weight:700;color:#7A5A36;font-family:Inter,sans-serif;font-size:11px;letter-spacing:0.16em;">毎月</div>
-        <div>
-          <div style="font-weight:700;color:#111827;">ヘッドホワイトボードYYMM.xlsx</div>
-          <div style="color:#6B7280;font-size:12px;margin-top:2px;">キャストの勤怠ステータス（出勤・欠勤・早退など）の元データ</div>
-        </div>
-        <div style="color:#9CA3AF;font-size:11px;text-align:right;">月1回更新</div>
-
-        <div style="font-weight:700;color:#7A5A36;font-family:Inter,sans-serif;font-size:11px;letter-spacing:0.16em;">不定期</div>
-        <div>
-          <div style="font-weight:700;color:#111827;">ヘッドスパニスト一覧管理表.xlsx</div>
-          <div style="color:#6B7280;font-size:12px;margin-top:2px;">キャストマスタ（源氏名・派遣名・優先度・固定エリア・在籍ステータス）</div>
-        </div>
-        <div style="color:#9CA3AF;font-size:11px;text-align:right;">変更時のみ</div>
-
-        <div style="font-weight:700;color:#7A5A36;font-family:Inter,sans-serif;font-size:11px;letter-spacing:0.16em;">不定期</div>
-        <div>
-          <div style="font-weight:700;color:#111827;">ヘッド研修日程表.xlsx</div>
-          <div style="color:#6B7280;font-size:12px;margin-top:2px;">研修進捗（OP・フット・オイル等の完了状況）</div>
-        </div>
-        <div style="color:#9CA3AF;font-size:11px;text-align:right;">変更時のみ</div>
-
-      </div>
-    </div>
-
-    <div style="color:#6B7280;font-size:12px;margin-bottom:8px;line-height:1.6;">
-    💡 ファイル名は変更しないでください（自動判定に使います）。同名ファイルを再アップすると上書き更新されます。
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
+# 対応ファイル一覧を Streamlit native のテーブルで表示（HTMLレンダリング問題回避）
+files_md = """
+| 更新頻度 | ファイル名 | 用途 |
+|:--|:--|:--|
+| 毎月 | `ao合計日報YYMM.xlsx` | CSスタッフの日報。売上・コース別・キャスト×月集計のメインデータ |
+| 毎月 | `ヘッドホワイトボードYYMM.xlsx` | キャストの勤怠ステータス（出勤・欠勤・早退など） |
+| 不定期 | `ヘッドスパニスト一覧管理表.xlsx` | キャストマスタ（源氏名・派遣名・優先度・在籍ステータス） |
+| 不定期 | `ヘッド研修日程表.xlsx` | 研修進捗（OP・フット・オイル等の完了状況） |
+"""
+st.markdown(files_md)
+st.caption("💡 ファイル名は変更しないでください（自動判定に使います）。同名ファイルを再アップすると上書き更新されます。")
 
 uploaded = st.file_uploader(
     " ", type=["xlsx"], accept_multiple_files=True, label_visibility="collapsed"
