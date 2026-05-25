@@ -5,14 +5,28 @@ from datetime import date, timedelta
 from typing import Optional
 
 import duckdb
+import streamlit as st
 
 
-def latest_complete_month(conn: duckdb.DuckDBPyConnection) -> str:
-    """fact_daily_sales に存在する最新の年月 'YYYY-MM' を返す。"""
+@st.cache_data(ttl=300, show_spinner=False)
+def _latest_complete_month_cached() -> str:
+    from db.warehouse import get_conn
+    conn = get_conn()
     row = conn.execute(
         "SELECT strftime(MAX(date), '%Y-%m') FROM fact_daily_sales WHERE store_id IN (1,2,3)"
     ).fetchone()
     return row[0] if row and row[0] else date.today().strftime("%Y-%m")
+
+
+def latest_complete_month(conn: duckdb.DuckDBPyConnection) -> str:
+    """fact_daily_sales に存在する最新の年月 'YYYY-MM' を返す（5分キャッシュ）。"""
+    try:
+        return _latest_complete_month_cached()
+    except Exception:
+        row = conn.execute(
+            "SELECT strftime(MAX(date), '%Y-%m') FROM fact_daily_sales WHERE store_id IN (1,2,3)"
+        ).fetchone()
+        return row[0] if row and row[0] else date.today().strftime("%Y-%m")
 
 
 def _prev_year_month(year_month: str) -> str:

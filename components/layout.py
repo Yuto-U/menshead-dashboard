@@ -13,14 +13,21 @@ from components.icons import svg
 ASSETS_DIR = Path(__file__).resolve().parent.parent / "assets"
 
 _favicon = None
+_logo_cache: dict[str, str] = {}
 
 
 def _logo_data_uri(name: str = "logo_icon.png") -> str:
+    """ロゴをbase64でメモ化（毎ページ再エンコードを避ける）。"""
+    if name in _logo_cache:
+        return _logo_cache[name]
     path = ASSETS_DIR / name
     if not path.exists():
+        _logo_cache[name] = ""
         return ""
     data = base64.b64encode(path.read_bytes()).decode()
-    return f"data:image/png;base64,{data}"
+    uri = f"data:image/png;base64,{data}"
+    _logo_cache[name] = uri
+    return uri
 
 
 def favicon():

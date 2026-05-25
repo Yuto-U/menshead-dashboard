@@ -39,6 +39,8 @@ def ingest_file(file_path: Path, conn: duckdb.DuckDBPyConnection | None = None) 
         counts[table] = _upsert_dataframe(conn, table, df, file_path.name)
 
     if own_conn:
+        # 単独取り込みでも補完を実行
+        backfill_derived_fields(conn)
         conn.close()
 
     return {
@@ -55,8 +57,47 @@ def ingest_files(files: Iterable[Path]) -> list[dict]:
     results = []
     for f in files:
         results.append(ingest_file(Path(f), conn=conn))
+    backfill_derived_fields(conn)
     conn.close()
     return results
+
+
+def backfill_derived_fields(conn: duckdb.DuckDBPyConnection) -> None:
+    """ETL後の自動補完処理。
+
+    1. fact_daily_sales の case_count / new_count / repeat_count / repeat_rate を
+       fact_course_daily（全社）の合計と店舗別売上の比率で按分して補完。
+    2. fact_daily_sales の unit_price を sales/case_count から算出。
+    """
+    # 案件数・新規/リピート件数・リピート率の補完
+    conn.execute(
+        """
+        WITH course_total AS (
+            SELECT date, SUM(case_count) AS total_cases,
+                   SUM(CASE WHEN new_or_repeat='new' THEN case_count ELSE 0 END) AS new_cases,
+                   SUM(CASE WHEN new_or_repeat='repeat' THEN case_count ELSE 0 END) AS repeat_cases
+            FROM fact_course_daily WHERE store_id=0 GROUP BY date
+        ),
+        store_total AS (
+            SELECT date, SUM(sales) AS day_sales FROM fact_daily_sales WHERE store_id IN (1,2,3) GROUP BY date
+        )
+        UPDATE fact_daily_sales f
+        SET case_count = CAST(ct.total_cases * (f.sales*1.0 / NULLIF(st.day_sales, 0)) AS INTEGER),
+            new_count = CAST(ct.new_cases * (f.sales*1.0 / NULLIF(st.day_sales, 0)) AS INTEGER),
+            repeat_count = CAST(ct.repeat_cases * (f.sales*1.0 / NULLIF(st.day_sales, 0)) AS INTEGER),
+            repeat_rate = ct.repeat_cases*1.0 / NULLIF(ct.total_cases, 0)
+        FROM course_total ct, store_total st
+        WHERE f.date = ct.date AND f.date = st.date AND f.case_count IS NULL
+        """
+    )
+    # 客単価の補完
+    conn.execute(
+        """
+        UPDATE fact_daily_sales
+        SET unit_price = CAST(sales*1.0/case_count AS INTEGER)
+        WHERE case_count > 0 AND unit_price IS NULL
+        """
+    )
 
 
 def _ensure_cast_ids(conn: duckdb.DuckDBPyConnection, names: list[str]) -> dict[str, int]:

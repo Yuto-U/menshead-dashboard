@@ -15,7 +15,7 @@ from components.layout import favicon, kpi_card, render_header, render_sidebar, 
 from components.style import apply_global_style
 from components.theme import install_plotly_theme
 from db.warehouse import DEFAULT_DB_PATH, get_conn, init_schema, reset_db, table_summary
-from etl.pipeline import ingest_file
+from etl.pipeline import backfill_derived_fields, ingest_file
 
 st.set_page_config(page_title="管理 - ダッシュボード", page_icon=favicon(), layout="wide")
 apply_global_style()
@@ -108,6 +108,8 @@ if uploaded:
             progress.progress((i + 1) / len(uploaded))
             renamed.unlink(missing_ok=True)
 
+        with st.spinner("派生データを補完中..."):
+            backfill_derived_fields(conn)
         st.success(f"✅ {len(results)} ファイルを取り込みました。")
         for r in results:
             with st.expander(f"📄 {r['file']} — {r.get('status', '?')}", expanded=False):

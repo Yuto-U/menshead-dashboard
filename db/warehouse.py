@@ -177,6 +177,18 @@ def get_conn(db_path: Optional[Path] = None) -> duckdb.DuckDBPyConnection:
     return conn
 
 
+_streamlit_conn = None
+
+
+def get_conn_cached() -> duckdb.DuckDBPyConnection:
+    """Streamlit用：プロセス内でDuckDB接続を1つ再利用。"""
+    global _streamlit_conn
+    if _streamlit_conn is None:
+        _streamlit_conn = get_conn()
+        init_schema(_streamlit_conn)
+    return _streamlit_conn
+
+
 ALTER_DDL = [
     # 既存DBへの追記用（カラムが既にあればDuckDBは無視する）
     "ALTER TABLE dim_cast ADD COLUMN IF NOT EXISTS priority INTEGER",
