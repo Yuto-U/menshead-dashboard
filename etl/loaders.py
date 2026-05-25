@@ -175,6 +175,57 @@ def load_cast_master(file_path: Path) -> dict[str, pd.DataFrame]:
     wb = load_workbook(file_path, data_only=True, read_only=True)
     out: dict[str, pd.DataFrame] = {}
 
+    # --- KPI シート → fact_recruiting_monthly ---
+    if "KPI" in wb.sheetnames:
+        ws = wb["KPI"]
+        rows = list(ws.iter_rows(values_only=True))
+        if len(rows) >= 12 and rows[0]:
+            header = rows[0]
+            # 行ラベル → 値リスト
+            label_rows: dict[str, tuple] = {}
+            for r in rows[1:12]:
+                if r and r[0]:
+                    key = normalize_text(r[0])
+                    if key:
+                        label_rows[key] = r[1:]
+
+            recruiting_rows = []
+            for col_idx, ym_dt in enumerate(header[1:]):
+                if not hasattr(ym_dt, "strftime"):
+                    continue
+                ym = ym_dt.strftime("%Y-%m")
+
+                def gv(label: str):
+                    arr = label_rows.get(label, ())
+                    if col_idx < len(arr):
+                        return safe_int(arr[col_idx])
+                    return None
+
+                hired = gv("採用数")
+                debut = gv("デビュー数")
+                left = gv("在籍退店数")
+                active = gv("稼働在籍数")
+                pre_leave = gv("研修前離脱数")
+                pre_leave_rate = safe_float(label_rows.get("研修前離脱率", ())[col_idx] if col_idx < len(label_rows.get("研修前離脱率", ())) else None)
+
+                if not any(v is not None for v in (hired, debut, left, active)):
+                    continue
+
+                recruiting_rows.append({
+                    "year_month": ym,
+                    "hired_count": hired,
+                    "joined_count": pre_leave,  # 研修前離脱を joined_count に流用
+                    "left_count": left,
+                    "debut_count": debut,
+                    "active_count": active,
+                    "leave_rate": pre_leave_rate,
+                    "debut_rate": (debut / hired) if (hired and debut is not None) else None,
+                    "source_file": file_path.name,
+                })
+
+            if recruiting_rows:
+                out["fact_recruiting_monthly"] = pd.DataFrame(recruiting_rows)
+
     # --- dim_cast_seed: 「ヘッド」シートからキャストマスタを抽出 ---
     if "ヘッド" in wb.sheetnames:
         ws = wb["ヘッド"]
