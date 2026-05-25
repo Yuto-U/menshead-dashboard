@@ -571,8 +571,13 @@ def load_daily_report(file_path: Path) -> dict[str, pd.DataFrame]:
             except ValueError:
                 return None
 
+        # 「総合」ブロックのみ取り込む。
+        # シートには r34以降に 「総数」/店舗名行（"銀座"/"上野"/"三丁目"）/再ヘッダ/店舗別データ
+        # が並んでおり、それらが混入すると二重・三重カウントになる。
+        # 1列目（日付）が datetime でない行（"総数" 等の文字列）が出たら break。
         for r in rows[1:]:
             if not r or r[0] is None:
+                # 空行スキップ（次の店舗ブロックに進む可能性があるので break ではなく continue）
                 continue
             date_value = r[0]
             if hasattr(date_value, "date"):
@@ -583,7 +588,8 @@ def load_daily_report(file_path: Path) -> dict[str, pd.DataFrame]:
                 except ValueError:
                     continue
             else:
-                continue
+                # 「総数」「銀座」「上野」「三丁目」「日付」などの文字列 → 総合ブロック終了
+                break
 
             for course_id, nor, case_hdr, amount_hdr in course_map:
                 c_idx = hdr_idx(case_hdr) if case_hdr else None
@@ -592,7 +598,6 @@ def load_daily_report(file_path: Path) -> dict[str, pd.DataFrame]:
                 amt = safe_int(r[a_idx]) if a_idx is not None and a_idx < len(r) else None
                 if not cnt and not amt:
                     continue
-                # 店舗が日報集計データには無い → store_id=0（全社）を入れて集計用とする
                 out["fact_course_daily"].append({
                     "date": date_value,
                     "store_id": 0,
