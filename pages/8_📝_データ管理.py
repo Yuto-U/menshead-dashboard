@@ -274,12 +274,43 @@ with tab_eval:
 # Tab 3: 顧客リピート（fact_customer_visit）— Phase B-3 で実装
 # ===================================================================
 with tab_customer:
-    section_title("顧客リピート", granularity="派遣本指名・店舗本指名相当", sub="🚧 Phase B-3 で実装予定")
-    empty_state(
-        "顧客リピート管理は次のPhaseで実装します。\n"
-        "現状はaoスパニスト評価シートの「派遣本指名」「店舗本指名」シートを参照してください。",
-        icon="🧾",
-    )
+    section_title("顧客リピート", granularity="派遣本指名・店舗本指名 統合", sub="電話番号で顧客識別（ハッシュ化）／月別の来店回数集計")
+
+    src = st.selectbox("ソース", ["all", "store", "haken"], format_func=lambda x: {"all": "すべて", "store": "店舗", "haken": "派遣"}[x], key="cust_src")
+    src_filter = "" if src == "all" else f" AND source_type='{src}'"
+
+    df_visit_summary = conn.execute(
+        f"""
+        SELECT customer_hash, MIN(customer_name) AS 顧客カナ,
+               COUNT(*) AS 来店回数,
+               SUM(CASE WHEN nomination_type='指名' OR nomination_type='本指名' THEN 1 ELSE 0 END) AS 指名回数,
+               SUM(CASE WHEN nomination_type='フリー' THEN 1 ELSE 0 END) AS フリー回数,
+               MIN(visit_date) AS 初回来店,
+               MAX(visit_date) AS 最終来店
+        FROM fact_customer_nomination
+        WHERE 1=1{src_filter}
+        GROUP BY customer_hash
+        ORDER BY 来店回数 DESC
+        """
+    ).fetchdf()
+
+    if df_visit_summary.empty:
+        empty_state("顧客リピートデータがありません。aoスパニスト評価シートをアップロードしてください。", icon="🧾")
+    else:
+        c1, c2, c3, c4 = st.columns(4)
+        with c1: st.metric("ユニーク顧客数", f"{len(df_visit_summary):,} 名")
+        with c2: st.metric("総来店回数", f"{int(df_visit_summary['来店回数'].sum()):,} 回")
+        with c3:
+            riipeat_count = (df_visit_summary["来店回数"] >= 2).sum()
+            st.metric("リピート顧客数", f"{riipeat_count:,} 名", help="2回以上の来店")
+        with c4:
+            rate = riipeat_count / len(df_visit_summary) if len(df_visit_summary) else 0
+            st.metric("リピート率", f"{rate*100:.1f}%")
+
+        st.dataframe(
+            df_visit_summary.drop(columns=["customer_hash"]),
+            use_container_width=True, hide_index=True, height=500,
+        )
 
 
 # ===================================================================

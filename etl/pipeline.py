@@ -205,8 +205,19 @@ def _upsert_fact_with_cast_name(
 def _upsert_plain_dataframe(
     conn: duckdb.DuckDBPyConnection, table: str, df: pd.DataFrame, source_file: str
 ) -> int:
-    """source_file をキーに既存行を削除してから INSERT する（冪等）。"""
-    conn.execute(f'DELETE FROM "{table}" WHERE source_file = ?', [source_file])
+    """source_file または PK で既存行を削除してから INSERT する（冪等）。"""
+    # PK 重複を避けるため、fact_cast_monthly は year_month で削除（複数ソース対応）
+    if table == "fact_cast_monthly" and "year_month" in df.columns:
+        months = df["year_month"].dropna().astype(str).unique().tolist()
+        for ym in months:
+            conn.execute("DELETE FROM fact_cast_monthly WHERE year_month = ?", [ym])
+    elif table == "fact_customer_nomination" and "source_type" in df.columns:
+        # source_type で削除（同じソースは再取込で上書き）
+        types = df["source_type"].dropna().astype(str).unique().tolist()
+        for t in types:
+            conn.execute("DELETE FROM fact_customer_nomination WHERE source_type = ?", [t])
+    else:
+        conn.execute(f'DELETE FROM "{table}" WHERE source_file = ?', [source_file])
     cols_in_db = [
         c[1] for c in conn.execute(f'PRAGMA table_info("{table}")').fetchall()
     ]

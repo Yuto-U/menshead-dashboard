@@ -468,12 +468,50 @@ def load_cast_evaluation(file_path: Path) -> dict[str, pd.DataFrame]:
                 "source_file": file_path.name,
             })
 
+    # --- 派遣本指名・店舗本指名 → fact_customer_nomination ---
+    visit_rows: list[dict] = []
+    for sheet_name, source_type in [("派遣本指名", "haken"), ("店舗本指名", "store")]:
+        if sheet_name not in wb.sheetnames:
+            continue
+        ws = wb[sheet_name]
+        for ridx, r in enumerate(ws.iter_rows(min_row=2, values_only=True), start=2):
+            if not r or len(r) < 8:
+                continue
+            d = r[0]
+            name = r[2] if len(r) > 2 else None
+            phone = r[3] if len(r) > 3 else None
+            nom_type = r[5] if len(r) > 5 else None
+            cast_name = r[6] if len(r) > 6 else None
+            store_or_haken = r[8] if len(r) > 8 else None
+            if not d or not phone:
+                continue
+            if not hasattr(d, "date"):
+                continue
+            ch = hash_phone(phone)
+            if not ch:
+                continue
+            visit_rows.append({
+                "visit_id": ridx,
+                "visit_date": d.date(),
+                "customer_hash": ch,
+                "customer_name": normalize_text(name),
+                "nomination_type": normalize_text(nom_type),
+                "cast_name": normalize_cast_name(cast_name),
+                "store_or_haken": normalize_text(store_or_haken),
+                "source_type": source_type,
+                "source_file": file_path.name,
+            })
+
     wb.close()
     result: dict[str, pd.DataFrame] = {}
     if cast_master:
         result["dim_cast_seed"] = pd.DataFrame(list(cast_master.values()))
     if fact_rows:
         result["fact_cast_monthly"] = pd.DataFrame(fact_rows)
+    if visit_rows:
+        result["fact_customer_nomination"] = pd.DataFrame(visit_rows).drop_duplicates(
+            subset=["source_type", "visit_id"], keep="last"
+        )
     return result
 
 

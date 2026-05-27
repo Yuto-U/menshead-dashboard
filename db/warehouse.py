@@ -141,6 +141,20 @@ SCHEMA_DDL: list[str] = [
     )
     """,
     """
+    CREATE TABLE IF NOT EXISTS fact_customer_nomination (
+        visit_id BIGINT,
+        visit_date DATE,
+        customer_hash TEXT,
+        customer_name TEXT,
+        nomination_type TEXT,
+        cast_name TEXT,
+        store_or_haken TEXT,
+        source_type TEXT,
+        source_file TEXT,
+        PRIMARY KEY (source_type, visit_id)
+    )
+    """,
+    """
     CREATE TABLE IF NOT EXISTS etl_runs (
         run_id BIGINT PRIMARY KEY,
         run_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
