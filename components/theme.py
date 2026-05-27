@@ -35,47 +35,65 @@ BG_TERTIARY = "#F7F8FA"
 BORDER = "#E5E7EB"
 BORDER_STRONG = "#D1D5DB"
 
-# ============== 4. 成功（緑） ==============
-SUCCESS_700 = "#15803D"
-SUCCESS = "#16A34A"
-SUCCESS_300 = "#4ADE80"
+# ============== 4. 成功（緑）/ Apple System Green ==============
+SUCCESS_700 = "#248A3D"
+SUCCESS = "#34C759"
+SUCCESS_300 = "#A1E5B0"
 
-# ============== 5. 警告（赤） ==============
-DANGER_700 = "#991B1B"
-DANGER = "#DC2626"
-DANGER_300 = "#F87171"
+# ============== 5. 警告（赤）/ Apple System Red ==============
+DANGER_700 = "#C9342B"
+DANGER = "#FF3B30"
+DANGER_300 = "#FFA09B"
 
-# ============== 店舗カラー（ブロンズ明度違い） ==============
+# ============== 6. 情報（青）/ Apple System Blue ==============
+INFO_700 = "#0051D5"
+INFO_500 = "#007AFF"
+INFO_300 = "#80BDFF"
+
+# ============== Apple/Google風 システムカラー ==============
+# データ可視化用のカラー。意味的に使い分ける。
+SYS_BLUE = "#007AFF"     # iOS Blue（情報・主軸データ）
+SYS_GREEN = "#34C759"    # iOS Green（成功・好調・成長）
+SYS_RED = "#FF3B30"      # iOS Red（警告・減少）
+SYS_ORANGE = "#FF9500"   # iOS Orange（注意・特別）
+SYS_YELLOW = "#FFCC00"   # iOS Yellow（強調）
+SYS_PURPLE = "#AF52DE"   # iOS Purple（プレミアム・人）
+SYS_PINK = "#FF2D55"     # iOS Pink
+SYS_TEAL = "#5AC8FA"     # iOS Light Blue
+SYS_INDIGO = "#5856D6"   # iOS Indigo
+
+# ============== 店舗カラー（システムカラー） ==============
+# 新宿=Blue(主力)、銀座=Orange(高単価)、上野=Green(成長)
 STORE_COLORS = {
-    "新宿": BRONZE_700,   # 濃
-    "銀座": BRONZE_500,   # 中
-    "上野": BRONZE_300,   # 薄
+    "新宿": SYS_BLUE,
+    "銀座": SYS_ORANGE,
+    "上野": SYS_GREEN,
 }
 
-# グラデーション用（CSSで使う場合）
 STORE_GRADIENTS = {
-    "新宿": (BRONZE_900, BRONZE_700),
-    "銀座": (BRONZE_700, BRONZE_500),
-    "上野": (BRONZE_400, BRONZE_300),
+    "新宿": ("#0051D5", SYS_BLUE),
+    "銀座": ("#C76A00", SYS_ORANGE),
+    "上野": ("#248A3D", SYS_GREEN),
 }
 
 # ============== 区分（新規/リピート） ==============
-# 明度差で対比、補色は使わない
 SEGMENT_COLORS = {
-    "new": BRONZE_700,
-    "repeat": BRONZE_300,
-    "新規": BRONZE_700,
-    "リピート": BRONZE_300,
+    "new": SYS_BLUE,
+    "repeat": SYS_ORANGE,
+    "新規": SYS_BLUE,
+    "リピート": SYS_ORANGE,
 }
 
-# ============== Plotly Colorway（ブロンズ階調） ==============
+# ============== Plotly Colorway（多色） ==============
 PLOT_COLORWAY = [
-    BRONZE_500,
-    BRONZE_700,
-    BRONZE_300,
-    BRONZE_900,
-    BRONZE_400,
-    BRONZE_100,
+    SYS_BLUE,
+    SYS_ORANGE,
+    SYS_GREEN,
+    SYS_PURPLE,
+    SYS_PINK,
+    SYS_TEAL,
+    SYS_YELLOW,
+    SYS_INDIGO,
 ]
 
 # ============== 互換エイリアス（既存コード対応） ==============
@@ -83,8 +101,8 @@ BRONZE = BRONZE_500
 BRONZE_LIGHT = BRONZE_400
 BRONZE_DARK = BRONZE_700
 GOLD = BRONZE_300
-WARNING = "#F59E0B"   # ※ Plotlyテンプレート以外ではほぼ未使用
-INFO = TEXT_700
+WARNING = SYS_ORANGE
+INFO = INFO_500
 TEXT_PRIMARY = TEXT_900
 TEXT_SECONDARY = TEXT_500
 TEXT_MUTED = TEXT_300
