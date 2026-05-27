@@ -47,11 +47,12 @@ NAV_ITEMS = [
     {"key": "store", "icon": "store", "label": "店舗別", "url": "/店舗別"},
     {"key": "cast", "icon": "user", "label": "キャスト別", "url": "/キャスト別"},
     {"key": "course", "icon": "target", "label": "コース別", "url": "/コース別"},
-    {"key": "recruit", "icon": "book", "label": "採用・研修", "url": "/採用研修"},
+    {"key": "recruit", "icon": "book", "label": "採用・在籍", "url": "/採用研修"},
     {"key": "trend", "icon": "trend", "label": "トレンド分析", "url": "/トレンド分析"},
     {"key": "meeting", "icon": "presentation", "label": "会議モード", "url": "/会議モード"},
 ]
 ADMIN_ITEMS = [
+    {"key": "data", "icon": "database", "label": "データ管理", "url": "/データ管理"},
     {"key": "admin", "icon": "settings", "label": "管理", "url": "/管理"},
 ]
 

@@ -781,7 +781,12 @@ def load_whiteboard(file_path: Path) -> dict[str, pd.DataFrame]:
 
 
 def load_training(file_path: Path) -> dict[str, pd.DataFrame]:
-    """`ヘッド研修日程表.xlsx` → fact_training（研修状況共有シートから）。"""
+    """※運用から削除（研修日程表は不要）。空のままにしておく。"""
+    return {}
+
+
+def _load_training_disabled(file_path: Path) -> dict[str, pd.DataFrame]:
+    """`ヘッド研修日程表.xlsx` → fact_training（過去版・現在は呼ばれない）。"""
     file_path = Path(file_path)
     fname = file_path.name
     wb = load_workbook(file_path, data_only=True, read_only=True)
@@ -860,7 +865,8 @@ LOADER_BY_FILENAME_PATTERN: list[tuple[re.Pattern, callable]] = [
     (re.compile(r"aoスパニスト評価"), load_cast_evaluation),
     (re.compile(r"ao合計日報"), load_daily_report),
     (re.compile(r"ヘッドホワイトボード"), load_whiteboard),
-    (re.compile(r"ヘッド研修日程表"), load_training),
+    # ヘッド研修日程表は運用から削除（研修進捗は今回のダッシュボードで追わない）
+    # (re.compile(r"ヘッド研修日程表"), load_training),
 ]
 
 
