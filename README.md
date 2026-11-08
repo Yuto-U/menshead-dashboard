@@ -34,7 +34,7 @@ pip install -r requirements.txt
 
 ```toml
 auth_enabled = false   # true にするとパスワード入力フォームが表示される
-password = "esthi2026"
+password = "ここに自分で決めたパスワード"
 ```
 
 ### 3. 起動
